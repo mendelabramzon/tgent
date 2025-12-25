@@ -49,6 +49,7 @@ Optional:
 
 - `TELEGRAM_PHONE` (used by the login helper script)
 - `OPENAI_MODEL` (default: `gpt-4o-mini`)
+- `DASHBOARD_USERNAME` + `DASHBOARD_PASSWORD` (protect the web UI with a password)
 
 ### 3) Login to Telegram (one-time)
 
@@ -71,6 +72,23 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 Open in your browser:
 
 - `http://YOUR_SERVER_IP:8000/`
+
+## Protect the dashboard (recommended)
+
+### Option A (built-in, simplest): HTTP Basic Auth
+
+Set these in `.env`:
+
+- `DASHBOARD_USERNAME=...`
+- `DASHBOARD_PASSWORD=...`
+
+Restart Uvicorn. Your browser will prompt for a username/password for **all pages** (including static assets).
+
+If you expose the app to the internet, put it behind **HTTPS** (reverse proxy) so credentials aren’t sent in cleartext.
+
+### Option B: SSH tunnel (no public port)
+
+Run Uvicorn bound to localhost on the server and access it from your laptop via SSH port-forwarding.
 
 ## How it works (high level)
 
@@ -99,5 +117,3 @@ They are loaded by `app/prompts.py` (`PromptStore`) and can be reloaded from **/
 - Secrets are loaded from `.env` (never committed).
 - Telegram + OpenAI failures are logged; OpenAI/Telegram issues shouldn’t crash the web server.
 - The app intentionally avoids extra infrastructure (no Celery, no React, no microservices).
-
-

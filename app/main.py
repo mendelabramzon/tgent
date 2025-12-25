@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import base64
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 
 from app.config import get_settings
 from app.db import connect, init_db
@@ -68,6 +71,48 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Telegram Dashboard Agent", lifespan=lifespan)
+
+def _basic_auth_unauthorized() -> Response:
+    return Response(
+        content="Unauthorized",
+        status_code=401,
+        headers={"WWW-Authenticate": 'Basic realm="Telegram Dashboard Agent"'},
+    )
+
+
+@app.middleware("http")
+async def basic_auth_middleware(request, call_next):  # type: ignore[no-untyped-def]
+    settings = getattr(request.app.state, "settings", None)
+    if settings is None:
+        return await call_next(request)
+
+    username = getattr(settings, "dashboard_username", None)
+    password_secret = getattr(settings, "dashboard_password", None)
+    if not username or password_secret is None:
+        return await call_next(request)
+
+    password = password_secret.get_secret_value()
+    if not password:
+        return await call_next(request)
+
+    auth = request.headers.get("authorization") or ""
+    if not auth.lower().startswith("basic "):
+        return _basic_auth_unauthorized()
+
+    encoded = auth.split(" ", 1)[1].strip()
+    try:
+        decoded = base64.b64decode(encoded).decode("utf-8")
+    except Exception:
+        return _basic_auth_unauthorized()
+
+    if ":" not in decoded:
+        return _basic_auth_unauthorized()
+    req_user, req_pass = decoded.split(":", 1)
+
+    if not secrets.compare_digest(req_user, username) or not secrets.compare_digest(req_pass, password):
+        return _basic_auth_unauthorized()
+
+    return await call_next(request)
 
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=(BASE_DIR / "static").as_posix()), name="static")

@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     db_path: Path = Path("data/app.db")
     prompts_dir: Path = Path("prompts")
 
+    # Dashboard auth (optional). If both are set, the whole web UI is protected by HTTP Basic Auth.
+    dashboard_username: str | None = None
+    dashboard_password: SecretStr | None = None
+
     # Telegram sync / UI
     telegram_dialogs_limit: int = 1000
 
