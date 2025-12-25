@@ -53,9 +53,14 @@
         <div class="label">Prompts</div>
         <div class="muted">Edit and save prompts here (writes JSON in <code>./prompts</code> and hot-reloads).</div>
       </div>
-      <form method="post" action="/prompts/reload">
-        <button type="submit" class="button">Reload all</button>
-      </form>
+      <div class="actions">
+        <form method="post" action="/prompts/reload">
+          <button type="submit" class="button">Reload all</button>
+        </form>
+        <form method="post" action="/prompts/restore-defaults" onsubmit="return confirm('Restore default prompts? This will overwrite your current prompt edits.');">
+          <button type="submit" class="button button--danger">Restore defaults</button>
+        </form>
+      </div>
     </div>
 
     {% if prompts and prompts|length > 0 %}

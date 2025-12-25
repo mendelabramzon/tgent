@@ -116,6 +116,8 @@ Prompt files live in:
 
 They are loaded by `app/prompts.py` (`PromptStore`) and can be reloaded from **/settings** with “Reload prompts”.
 
+If you break prompts while editing in the UI, you can restore factory defaults from **/settings** (“Restore defaults”). Defaults are stored in `./prompts_defaults`.
+
 ### Reply target (Send as reply)
 
 The summary step chooses `reply_to_message_id` (best-fit incoming message id from the last K messages). The “Send as reply” button uses this id so the reply attaches to the **most relevant incoming message** (not always the last one). If it’s missing/invalid, the app falls back to a simple heuristic.

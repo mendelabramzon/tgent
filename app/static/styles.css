@@ -78,6 +78,7 @@ h1 { margin: 0 0 6px 0; font-size: 22px; }
 .button:hover { filter: brightness(1.05); }
 .button--primary { border-color: rgba(122, 162, 255, 0.6); }
 .button--ghost { background: transparent; }
+.button--danger { border-color: rgba(231, 76, 60, 0.6); color: var(--err); }
 
 .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 .tab {

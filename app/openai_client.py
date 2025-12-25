@@ -107,12 +107,12 @@ class OpenAIClient:
                 if "max_tokens' is not supported" in msg or "Use 'max_completion_tokens' instead" in msg:
                     setattr(self, "_token_param", "max_completion_tokens")
                     kwargs.pop("max_tokens", None)
-                    kwargs["max_completion_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
+                    kwargs["max_completion_tokens"] = max_out
                     resp = await self._client.chat.completions.create(**kwargs)
                 elif "max_completion_tokens' is not supported" in msg or "Use 'max_tokens' instead" in msg:
                     setattr(self, "_token_param", "max_tokens")
                     kwargs.pop("max_completion_tokens", None)
-                    kwargs["max_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
+                    kwargs["max_tokens"] = max_out
                     resp = await self._client.chat.completions.create(**kwargs)
                 else:
                     raise
@@ -123,9 +123,15 @@ class OpenAIClient:
             else:
                 raise
 
-        content = (resp.choices[0].message.content or "").strip()
+        choice0 = resp.choices[0]
+        msg0 = choice0.message
+        content = (msg0.content or "").strip()
         if not content:
-            raise ValueError("Empty OpenAI response content")
+            finish_reason = getattr(choice0, "finish_reason", None)
+            refusal = getattr(msg0, "refusal", None)
+            if refusal:
+                raise ValueError(f"OpenAI refusal (finish_reason={finish_reason}): {refusal}")
+            raise ValueError(f"Empty OpenAI response content (finish_reason={finish_reason})")
 
         data: dict[str, Any] = json.loads(content)
         return schema_model.model_validate(data)

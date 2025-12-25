@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data")
     db_path: Path = Path("data/app.db")
     prompts_dir: Path = Path("prompts")
+    prompts_defaults_dir: Path = Path("prompts_defaults")
 
     # Dashboard auth (optional). If both are set, the whole web UI is protected by HTTP Basic Auth.
     dashboard_username: str | None = None

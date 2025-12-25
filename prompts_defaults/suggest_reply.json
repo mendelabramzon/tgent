@@ -1,0 +1,6 @@
+{
+  "role": "user",
+  "content": "Chat title: {chat_title}\nLanguage hint (may be empty): {language_hint}\n\nContext summary (JSON, produced by a separate summarizer model):\n{summary_json}\n\nYou are replying to this specific incoming message:\n- reply_to_message_id: {reply_to_message_id}\n- reply_to_text: {reply_to_text}\n\nTask:\n- Draft ONE natural reply as the Telegram user.\n- Write in the original chat language and match the tone/style described in the summary.\n- Keep it short/medium unless context clearly requires longer.\n- Do not hallucinate facts; rely only on the summary + reply_to_text.\n- Return a Russian translation of your suggested reply.\n\nOutput format:\nReturn ONLY a JSON object with exactly these keys:\n- suggested_text\n- ru_translation\n- reply_to_message_id  (must equal the provided reply_to_message_id)\nNo extra keys. No markdown. No commentary."
+}
+
+
