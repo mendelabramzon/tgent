@@ -35,6 +35,8 @@ class SourceMessage(BaseModel):
 class ReplySuggestion(BaseModel):
     suggested_text: str = Field(min_length=1)
     ru_translation: str = Field(min_length=1)
+    # When sending as "reply", reply to this Telegram message id (must exist in provided source messages).
+    reply_to_message_id: int | None = None
 
 
 class SuggestionRecord(BaseModel):

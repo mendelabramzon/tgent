@@ -6,9 +6,11 @@
       <h1>Settings</h1>
       <div class="muted">Controls polling + suggestion creation limits.</div>
     </div>
-    <form method="post" action="/prompts/reload">
-      <button type="submit" class="button">Reload prompts</button>
-    </form>
+    <div class="actions">
+      <form method="post" action="/prompts/reload">
+        <button type="submit" class="button">Reload prompts</button>
+      </form>
+    </div>
   </div>
 
   <form method="post" action="/settings/save" class="form">
@@ -39,15 +41,53 @@
   </form>
 
   <div class="card">
-    <div class="label">Prompts</div>
-    <div class="mono">
-      {% if prompts_loaded and prompts_loaded|length > 0 %}
-        {{ prompts_loaded|join(", ") }}
-      {% else %}
-        (none)
-      {% endif %}
+    <div class="page-header">
+      <div>
+        <div class="label">Prompts</div>
+        <div class="muted">Edit and save prompts here (writes JSON in <code>./prompts</code> and hot-reloads).</div>
+      </div>
+      <form method="post" action="/prompts/reload">
+        <button type="submit" class="button">Reload all</button>
+      </form>
     </div>
-    <div class="muted">Edit JSON files in <code>./prompts</code>, then click “Reload prompts”.</div>
+
+    {% if prompts and prompts|length > 0 %}
+      <div class="cards">
+        {% for p in prompts %}
+          <div class="card">
+            <div class="card__header">
+              <div class="card__title">Prompt: {{ p.name }}</div>
+              <div class="card__meta">
+                <span class="pill">{{ p.role }}</span>
+              </div>
+            </div>
+
+            <form method="post" action="/prompts/update" class="form">
+              <input type="hidden" name="name" value="{{ p.name }}" />
+
+              <div class="form-row">
+                <label class="label" for="role-{{ p.name }}">Role</label>
+                <select class="input" id="role-{{ p.name }}" name="role">
+                  <option value="system" {% if p.role == 'system' %}selected{% endif %}>system</option>
+                  <option value="user" {% if p.role == 'user' %}selected{% endif %}>user</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <label class="label" for="content-{{ p.name }}">Content</label>
+                <textarea class="input input--textarea" id="content-{{ p.name }}" name="content" rows="10">{{ p.content }}</textarea>
+              </div>
+
+              <div class="actions">
+                <button type="submit" class="button button--primary">Save & reload</button>
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">(no prompts loaded)</div>
+    {% endif %}
   </div>
 {% endblock %}
 

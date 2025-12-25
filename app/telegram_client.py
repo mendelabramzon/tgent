@@ -73,10 +73,12 @@ class TelegramClientManager:
         # Telethon returns newest->oldest by default.
         return list(reversed(list(messages)))
 
-    async def send_message(self, chat_id: int, text: str) -> Any:
+    async def send_message(self, chat_id: int, text: str, *, reply_to_message_id: int | None = None) -> Any:
         self._ensure_authorized()
         entity = await self._client.get_input_entity(chat_id)
         try:
+            if reply_to_message_id:
+                return await self._client.send_message(entity, text, reply_to=int(reply_to_message_id))
             return await self._client.send_message(entity, text)
         except FloodWaitError as e:
             logger.warning("Telegram FloodWaitError: wait %ss", e.seconds)

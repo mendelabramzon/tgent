@@ -151,6 +151,13 @@ h1 { margin: 0 0 6px 0; font-size: 22px; }
   color: var(--text);
 }
 
+.input--textarea {
+  max-width: 100%;
+  resize: vertical;
+  min-height: 140px;
+  line-height: 1.35;
+}
+
 .list {
   display: flex;
   flex-direction: column;

@@ -112,6 +112,10 @@ Prompt files live in:
 
 They are loaded by `app/prompts.py` (`PromptStore`) and can be reloaded from **/settings** with “Reload prompts”.
 
+### Reply target (Send as reply)
+
+The default prompt (`prompts/suggest_reply.json`) asks the model to also return a `reply_to_message_id` (chosen from the recent messages list). The “Send as reply” button uses this id so the reply attaches to the **most relevant incoming message** (not always the last one). If it’s missing/invalid, the app falls back to a simple heuristic.
+
 ## Notes / safety
 
 - Secrets are loaded from `.env` (never committed).

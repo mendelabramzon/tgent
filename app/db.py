@@ -46,6 +46,7 @@ async def init_db(conn: aiosqlite.Connection) -> None:
             source_messages_json TEXT NOT NULL,
             suggested_text TEXT NOT NULL,
             ru_translation TEXT NOT NULL,
+            reply_to_message_id INTEGER NULL,
             status TEXT NOT NULL,
             error TEXT NULL,
             updated_at TEXT NOT NULL,
@@ -67,6 +68,17 @@ async def init_db(conn: aiosqlite.Connection) -> None:
         );
         """
     )
+
+    # Best-effort schema migration for older DBs (add reply_to_message_id if missing).
+    try:
+        cols = await fetch_all(conn, "PRAGMA table_info(suggestions);")
+        names = {str(c["name"]) for c in cols}
+        if "reply_to_message_id" not in names:
+            await conn.execute("ALTER TABLE suggestions ADD COLUMN reply_to_message_id INTEGER NULL;")
+            await conn.commit()
+            logger.info("Migrated DB: added suggestions.reply_to_message_id")
+    except Exception:
+        logger.exception("DB migration failed (reply_to_message_id)")
 
     # Ensure a singleton settings row exists.
     now = utcnow_iso()

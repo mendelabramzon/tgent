@@ -22,11 +22,13 @@ async def settings_page(request: Request) -> object:
     prompt_store = request.app.state.prompt_store
 
     settings = await get_settings(conn)
+    prompts = [prompt_store.get(name) for name in prompt_store.list()]
     return templates.TemplateResponse(
         "settings.html",
         {
             "request": request,
             "settings": settings,
+            "prompts": prompts,
             "telegram_authorized": tg.is_authorized,
             "openai_configured": openai.enabled,
             "prompts_loaded": prompt_store.list(),

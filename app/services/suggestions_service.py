@@ -130,7 +130,7 @@ async def get_suggestion(conn: aiosqlite.Connection, suggestion_id: int) -> dict
     row = await fetch_one(
         conn,
         """
-        SELECT id, chat_id, created_at, source_messages_json, suggested_text, ru_translation, status, error, updated_at
+        SELECT id, chat_id, created_at, source_messages_json, suggested_text, ru_translation, reply_to_message_id, status, error, updated_at
         FROM suggestions
         WHERE id = ?;
         """,
@@ -163,6 +163,7 @@ async def create_suggestion(
     source_messages_json: str,
     suggested_text: str,
     ru_translation: str,
+    reply_to_message_id: int | None = None,
     status: SuggestionStatus,
     error: str | None = None,
 ) -> int:
@@ -170,9 +171,9 @@ async def create_suggestion(
     cur = await conn.execute(
         """
         INSERT INTO suggestions
-            (chat_id, created_at, source_messages_json, suggested_text, ru_translation, status, error, updated_at)
+            (chat_id, created_at, source_messages_json, suggested_text, ru_translation, reply_to_message_id, status, error, updated_at)
         VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?);
+            (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """,
         (
             int(chat_id),
@@ -180,6 +181,7 @@ async def create_suggestion(
             source_messages_json,
             suggested_text,
             ru_translation,
+            (int(reply_to_message_id) if reply_to_message_id else None),
             status.value,
             error,
             now,
@@ -331,12 +333,20 @@ async def generate_suggestions_cycle(
                 user_prompt=user_prompt,
             )
 
+            # Validate reply target (must be an incoming message id from the provided context).
+            incoming_ids = [m.id for m in source if not m.from_me]
+            fallback_reply_to = incoming_ids[-1] if incoming_ids else None
+            reply_to_id = reply.reply_to_message_id
+            if reply_to_id not in set(incoming_ids):
+                reply_to_id = fallback_reply_to
+
             await create_suggestion(
                 conn,
                 chat_id=chat.id,
                 source_messages_json=messages_json,
                 suggested_text=reply.suggested_text,
                 ru_translation=reply.ru_translation,
+                reply_to_message_id=reply_to_id,
                 status=SuggestionStatus.pending,
             )
             await update_chat_last_seen_message_id(conn, chat_id=chat.id, last_seen_message_id=latest_id)

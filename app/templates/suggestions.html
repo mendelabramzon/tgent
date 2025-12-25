@@ -73,6 +73,9 @@
               <form method="post" action="/suggestions/{{ s.id }}/send">
                 <button type="submit" class="button button--primary">Send</button>
               </form>
+              <form method="post" action="/suggestions/{{ s.id }}/send-reply">
+                <button type="submit" class="button">Send as reply</button>
+              </form>
               <form method="post" action="/suggestions/{{ s.id }}/decline">
                 <button type="submit" class="button button--ghost">Decline</button>
               </form>
