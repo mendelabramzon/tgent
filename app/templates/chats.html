@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Chats</h1>
+      <div class="muted">
+        Sync your dialogs, then select which chats to monitor.
+      </div>
+    </div>
+    <form method="post" action="/chats/sync">
+      <button type="submit" class="button">Sync from Telegram (limit {{ dialogs_limit }})</button>
+    </form>
+  </div>
+
+  {% if not telegram_authorized %}
+    <div class="alert alert--warn">
+      Telegram is not logged in. Run <code>python scripts/telegram_login.py</code> on the server once to create <code>./data/telethon.session</code>.
+    </div>
+  {% endif %}
+
+  {% if chats|length == 0 %}
+    <div class="empty">
+      No chats in the database yet. Click “Sync from Telegram”.
+    </div>
+  {% else %}
+    <div class="toolbar">
+      <input id="search" class="input" type="text" placeholder="Search chats..." />
+      <div class="muted">Total: {{ chats|length }}</div>
+    </div>
+
+    <form method="post" action="/chats/save">
+      <div class="list" id="chat-list">
+        {% for c in chats %}
+          <label class="list__item" data-title="{{ c.title|lower }}">
+            <input
+              type="checkbox"
+              name="selected_chat_ids"
+              value="{{ c.id }}"
+              {% if c.is_selected %}checked{% endif %}
+            />
+            <span class="list__title">{{ c.title }}</span>
+            <span class="list__meta mono">{{ c.id }}</span>
+          </label>
+        {% endfor %}
+      </div>
+
+      <div class="actions actions--sticky">
+        <button type="submit" class="button button--primary">Save selection</button>
+      </div>
+    </form>
+
+    <script>
+      (function () {
+        var input = document.getElementById("search");
+        var list = document.getElementById("chat-list");
+        if (!input || !list) return;
+        input.addEventListener("input", function () {
+          var q = (input.value || "").toLowerCase().trim();
+          var items = list.querySelectorAll("[data-title]");
+          for (var i = 0; i < items.length; i++) {
+            var title = items[i].getAttribute("data-title") || "";
+            items[i].style.display = title.indexOf(q) !== -1 ? "" : "none";
+          }
+        });
+      })();
+    </script>
+  {% endif %}
+{% endblock %}
+
+

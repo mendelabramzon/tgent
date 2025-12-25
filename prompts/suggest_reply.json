@@ -1,0 +1,6 @@
+{
+  "role": "user",
+  "content": "Chat title: {chat_title}\nLanguage hint (may be empty): {language_hint}\n\nRecent messages (JSON array, oldest -> newest):\n{messages_json}\n\nTask:\n- Identify the conversation language.\n- Draft ONE reply as the Telegram user, in the original language and matching the style/tone.\n- Keep it short/medium unless context clearly requires longer.\n- Do not hallucinate facts; use only information present in the messages.\n- Return a Russian translation of your suggested reply.\n\nOutput format:\nReturn ONLY a JSON object with exactly these keys:\n- suggested_text\n- ru_translation\nNo extra keys. No markdown. No commentary."
+}
+
+

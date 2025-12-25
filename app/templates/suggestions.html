@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Suggestions</h1>
+      <div class="muted">
+        Pending suggestions are shown first. Use filters to view history.
+      </div>
+    </div>
+    <form method="post" action="/run-now">
+      <button type="submit" class="button">Run now</button>
+    </form>
+  </div>
+
+  <div class="tabs">
+    <a class="tab {{ 'tab--active' if not status_filter else '' }}" href="/">All</a>
+    <a class="tab {{ 'tab--active' if status_filter == 'pending' else '' }}" href="/?status=pending">Pending</a>
+    <a class="tab {{ 'tab--active' if status_filter == 'sent' else '' }}" href="/?status=sent">Sent</a>
+    <a class="tab {{ 'tab--active' if status_filter == 'declined' else '' }}" href="/?status=declined">Declined</a>
+    <a class="tab {{ 'tab--active' if status_filter == 'failed' else '' }}" href="/?status=failed">Failed</a>
+  </div>
+
+  {% if not telegram_authorized %}
+    <div class="alert alert--warn">
+      Telegram is not logged in. Run <code>python scripts/telegram_login.py</code> on the server once to create the session.
+    </div>
+  {% endif %}
+
+  {% if not openai_configured %}
+    <div class="alert alert--warn">
+      OpenAI key is missing. Set <code>OPENAI_API_KEY</code> in <code>.env</code>.
+    </div>
+  {% endif %}
+
+  {% if suggestions|length == 0 %}
+    <div class="empty">
+      No suggestions yet. Select chats on <a href="/chats">/chats</a> and wait for the scheduler (or click “Run now”).
+    </div>
+  {% else %}
+    <div class="cards">
+      {% for s in suggestions %}
+        <div class="card">
+          <div class="card__header">
+            <div class="card__title">{{ s.chat_title }}</div>
+            <div class="card__meta">
+              <span class="pill">#{{ s.id }}</span>
+              <span class="pill">{{ s.status.value }}</span>
+              <span class="pill">{{ s.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</span>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <div class="label">Suggested message</div>
+              <pre class="text">{{ s.suggested_text }}</pre>
+            </div>
+            <div>
+              <div class="label">Russian translation</div>
+              <pre class="text">{{ s.ru_translation }}</pre>
+            </div>
+          </div>
+
+          {% if s.error %}
+            <div class="alert alert--error">
+              <div class="label">Error</div>
+              <div class="mono">{{ s.error }}</div>
+            </div>
+          {% endif %}
+
+          {% if s.status.value == 'pending' %}
+            <div class="actions">
+              <form method="post" action="/suggestions/{{ s.id }}/send">
+                <button type="submit" class="button button--primary">Send</button>
+              </form>
+              <form method="post" action="/suggestions/{{ s.id }}/decline">
+                <button type="submit" class="button button--ghost">Decline</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+

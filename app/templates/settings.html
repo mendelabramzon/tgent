@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Settings</h1>
+      <div class="muted">Controls polling + suggestion creation limits.</div>
+    </div>
+    <form method="post" action="/prompts/reload">
+      <button type="submit" class="button">Reload prompts</button>
+    </form>
+  </div>
+
+  <form method="post" action="/settings/save" class="form">
+    <div class="form-row">
+      <label class="label" for="k_messages">K (messages to fetch per chat)</label>
+      <input class="input" id="k_messages" name="k_messages" type="number" min="1" max="100" value="{{ settings.k_messages }}" />
+    </div>
+
+    <div class="form-row">
+      <label class="label" for="n_minutes">N (poll interval in minutes)</label>
+      <input class="input" id="n_minutes" name="n_minutes" type="number" min="1" max="1440" value="{{ settings.n_minutes }}" />
+    </div>
+
+    <div class="form-row">
+      <label class="label" for="max_suggestions_per_chat">Max pending suggestions per chat</label>
+      <input class="input" id="max_suggestions_per_chat" name="max_suggestions_per_chat" type="number" min="1" max="10" value="{{ settings.max_suggestions_per_chat }}" />
+    </div>
+
+    <div class="form-row">
+      <label class="label" for="cooldown_minutes">Cooldown (minutes, 0 disables)</label>
+      <input class="input" id="cooldown_minutes" name="cooldown_minutes" type="number" min="0" max="1440" value="{{ settings.cooldown_minutes }}" />
+      <div class="muted">If set, a chat won’t get a new suggestion until cooldown passes.</div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="button button--primary">Save</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="label">Prompts</div>
+    <div class="mono">
+      {% if prompts_loaded and prompts_loaded|length > 0 %}
+        {{ prompts_loaded|join(", ") }}
+      {% else %}
+        (none)
+      {% endif %}
+    </div>
+    <div class="muted">Edit JSON files in <code>./prompts</code>, then click “Reload prompts”.</div>
+  </div>
+{% endblock %}
+
+

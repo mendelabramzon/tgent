@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Telegram Dashboard Agent" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="nav">
+        <a href="/" class="nav__link">Suggestions</a>
+        <a href="/chats" class="nav__link">Chats</a>
+        <a href="/settings" class="nav__link">Settings</a>
+      </div>
+      <div class="badges">
+        <span class="badge {{ 'badge--ok' if telegram_authorized else 'badge--warn' }}">
+          Telegram: {{ 'OK' if telegram_authorized else 'NOT LOGGED IN' }}
+        </span>
+        <span class="badge {{ 'badge--ok' if openai_configured else 'badge--warn' }}">
+          OpenAI: {{ 'OK' if openai_configured else 'MISSING KEY' }}
+        </span>
+      </div>
+    </header>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+      <div class="footer__text">
+        Prompts loaded:
+        {% if prompts_loaded and prompts_loaded|length > 0 %}
+          {{ prompts_loaded|join(", ") }}
+        {% else %}
+          (none)
+        {% endif %}
+      </div>
+    </footer>
+  </body>
+</html>
+
+
