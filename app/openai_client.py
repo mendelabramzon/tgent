@@ -12,6 +12,7 @@ from app.models import ReplySuggestion
 logger = logging.getLogger(__name__)
 
 _DEFAULT_MAX_OUTPUT_TOKENS = 600
+_DEFAULT_TEMPERATURE = 0.7
 
 
 class OpenAIClient:
@@ -63,8 +64,11 @@ class OpenAIClient:
                 {"role": "user", "content": user_prompt},
             ],
             "response_format": {"type": "json_object"},
-            "temperature": 0.7,
         }
+
+        # Some newer model families restrict sampling params (e.g. GPT-5 only supports default temperature=1).
+        if not self.model.startswith("gpt-5"):
+            kwargs["temperature"] = _DEFAULT_TEMPERATURE
 
         # Token parameter compatibility:
         # Some models (e.g. GPT-5) require `max_completion_tokens` instead of `max_tokens`.
@@ -94,6 +98,10 @@ class OpenAIClient:
                     resp = await self._client.chat.completions.create(**kwargs)
                 else:
                     raise
+            elif "temperature" in msg and ("Only the default" in msg or "unsupported" in msg):
+                # Some models only support default temperature; omit it and retry once.
+                kwargs.pop("temperature", None)
+                resp = await self._client.chat.completions.create(**kwargs)
             else:
                 raise
 
