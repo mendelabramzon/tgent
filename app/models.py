@@ -39,6 +39,17 @@ class ReplySuggestion(BaseModel):
     reply_to_message_id: int | None = None
 
 
+class ChatContextSummary(BaseModel):
+    """
+    A compressed representation of the last K messages, used to craft a reply with a second model.
+    """
+
+    language: str
+    tone: str
+    summary: str = Field(min_length=1)
+    reply_to_message_id: int | None = None
+
+
 class SuggestionRecord(BaseModel):
     id: int
     chat_id: int

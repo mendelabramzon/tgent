@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 from openai import APIError, APITimeoutError, AsyncOpenAI, BadRequestError, RateLimitError
+from pydantic import BaseModel
 
 from app.models import ReplySuggestion
 
@@ -16,6 +17,8 @@ _DEFAULT_MAX_OUTPUT_TOKENS = 600
 # If the budget is too low, you may receive a 200 OK with empty visible content.
 _GPT5_MAX_OUTPUT_TOKENS = 2000
 _DEFAULT_TEMPERATURE = 0.7
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class OpenAIClient:
@@ -35,14 +38,18 @@ class OpenAIClient:
         if self.enabled:
             self._client = AsyncOpenAI(api_key=api_key, timeout=timeout_seconds)
 
-    async def suggest_reply(self, *, system_prompt: str, user_prompt: str) -> ReplySuggestion:
+    async def request_json(
+        self, *, system_prompt: str, user_prompt: str, schema_model: type[T]
+    ) -> T:
         if not self.enabled or self._client is None:
             raise RuntimeError("OpenAI is not configured (missing OPENAI_API_KEY).")
 
         last_err: Exception | None = None
         for attempt in range(self.max_retries + 1):
             try:
-                return await self._suggest_once(system_prompt=system_prompt, user_prompt=user_prompt)
+                return await self._request_once(
+                    system_prompt=system_prompt, user_prompt=user_prompt, schema_model=schema_model
+                )
             except (RateLimitError, APITimeoutError, APIError, json.JSONDecodeError, ValueError) as e:
                 last_err = e
                 delay = min(8.0, 2.0**attempt)
@@ -58,7 +65,14 @@ class OpenAIClient:
         assert last_err is not None
         raise last_err
 
-    async def _suggest_once(self, *, system_prompt: str, user_prompt: str) -> ReplySuggestion:
+    async def suggest_reply(self, *, system_prompt: str, user_prompt: str) -> ReplySuggestion:
+        return await self.request_json(
+            system_prompt=system_prompt, user_prompt=user_prompt, schema_model=ReplySuggestion
+        )
+
+    async def _request_once(
+        self, *, system_prompt: str, user_prompt: str, schema_model: type[T]
+    ) -> T:
         assert self._client is not None
         kwargs: dict[str, Any] = {
             "model": self.model,
@@ -114,6 +128,6 @@ class OpenAIClient:
             raise ValueError("Empty OpenAI response content")
 
         data: dict[str, Any] = json.loads(content)
-        return ReplySuggestion.model_validate(data)
+        return schema_model.model_validate(data)
 
 

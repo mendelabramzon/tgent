@@ -1,0 +1,6 @@
+{
+  "role": "user",
+  "content": "Chat title: {chat_title}\nLanguage hint (may be empty): {language_hint}\n\nRecent messages (JSON array, oldest -> newest):\n{messages_json}\n\nTask:\n- Summarize the conversation context from these messages.\n- Detect the conversation language.\n- Infer tone/style (e.g. casual vs formal).\n- Choose which specific incoming message (id) is the best target to reply to right now.\n\nOutput format:\nReturn ONLY a JSON object with exactly these keys:\n- language\n- tone\n- summary\n- reply_to_message_id\n\nConstraints:\n- reply_to_message_id must be one of the message ids present in the messages JSON (prefer a message where from_me=false).\n- Keep summary short (3-6 sentences). No markdown. No commentary."
+}
+
+

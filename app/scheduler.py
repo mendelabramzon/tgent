@@ -26,12 +26,14 @@ class SuggestionScheduler:
         *,
         conn: aiosqlite.Connection,
         tg: TelegramClientManager,
-        openai: OpenAIClient,
+        openai_summary: OpenAIClient,
+        openai_reply: OpenAIClient,
         prompts: PromptStore,
     ):
         self._conn = conn
         self._tg = tg
-        self._openai = openai
+        self._openai_summary = openai_summary
+        self._openai_reply = openai_reply
         self._prompts = prompts
 
         self._task: asyncio.Task[None] | None = None
@@ -69,7 +71,8 @@ class SuggestionScheduler:
             await generate_suggestions_cycle(
                 self._conn,
                 tg=self._tg,
-                openai=self._openai,
+                openai_summary=self._openai_summary,
+                openai_reply=self._openai_reply,
                 prompts=self._prompts,
             )
 

@@ -20,6 +20,7 @@ async def settings_page(request: Request) -> object:
     tg = request.app.state.tg
     openai = request.app.state.openai
     prompt_store = request.app.state.prompt_store
+    app_settings = request.app.state.settings
 
     settings = await get_settings(conn)
     prompts = [prompt_store.get(name) for name in prompt_store.list()]
@@ -29,6 +30,8 @@ async def settings_page(request: Request) -> object:
             "request": request,
             "settings": settings,
             "prompts": prompts,
+            "openai_reply_model": app_settings.openai_model,
+            "openai_summary_model": app_settings.openai_summary_model,
             "telegram_authorized": tg.is_authorized,
             "openai_configured": openai.enabled,
             "prompts_loaded": prompt_store.list(),

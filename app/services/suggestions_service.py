@@ -8,7 +8,7 @@ from typing import Any, Iterable
 import aiosqlite
 
 from app.db import fetch_all, fetch_one, utcnow_iso
-from app.models import ReplySuggestion, SettingsRecord, SourceMessage, SuggestionStatus, SuggestionView
+from app.models import ChatContextSummary, ReplySuggestion, SettingsRecord, SourceMessage, SuggestionStatus, SuggestionView
 from app.openai_client import OpenAIClient
 from app.prompts import PromptStore
 from app.services.chats_service import get_selected_chats, update_chat_last_seen_message_id
@@ -236,7 +236,8 @@ async def generate_suggestions_cycle(
     conn: aiosqlite.Connection,
     *,
     tg: TelegramClientManager,
-    openai: OpenAIClient,
+    openai_summary: OpenAIClient,
+    openai_reply: OpenAIClient,
     prompts: PromptStore,
 ) -> None:
     """
@@ -250,7 +251,7 @@ async def generate_suggestions_cycle(
         logger.debug("Skipping suggestion cycle: Telegram not authorized")
         return
 
-    if not openai.enabled:
+    if not openai_summary.enabled or not openai_reply.enabled:
         logger.debug("Skipping suggestion cycle: OpenAI not configured")
         return
 
@@ -321,24 +322,49 @@ async def generate_suggestions_cycle(
 
             messages_json = json.dumps([m.model_dump() for m in source], ensure_ascii=False)
 
-            user_prompt = prompts.render(
-                "suggest_reply",
+            incoming_ids = [m.id for m in source if not m.from_me]
+            fallback_reply_to = incoming_ids[-1] if incoming_ids else None
+            incoming_id_set = set(incoming_ids)
+
+            # Step 1: summarize with GPT-4 class model
+            summary_prompt = prompts.render(
+                "summarize_context",
                 chat_title=chat.title,
                 language_hint=(chat.language_hint or ""),
                 messages_json=messages_json,
             ).content
 
-            reply: ReplySuggestion = await openai.suggest_reply(
+            summary: ChatContextSummary = await openai_summary.request_json(
                 system_prompt=system_prompt,
-                user_prompt=user_prompt,
+                user_prompt=summary_prompt,
+                schema_model=ChatContextSummary,
             )
 
-            # Validate reply target (must be an incoming message id from the provided context).
-            incoming_ids = [m.id for m in source if not m.from_me]
-            fallback_reply_to = incoming_ids[-1] if incoming_ids else None
-            reply_to_id = reply.reply_to_message_id
-            if reply_to_id not in set(incoming_ids):
+            reply_to_id = summary.reply_to_message_id
+            if reply_to_id not in incoming_id_set:
                 reply_to_id = fallback_reply_to
+            if reply_to_id is None:
+                # No incoming messages to reply to.
+                await update_chat_last_seen_message_id(conn, chat_id=chat.id, last_seen_message_id=latest_id)
+                continue
+
+            reply_to_text = next((m.text for m in source if m.id == reply_to_id), "")
+
+            # Step 2: craft reply with GPT-5 model from summary + the specific message to reply to
+            user_prompt = prompts.render(
+                "suggest_reply",
+                chat_title=chat.title,
+                language_hint=(chat.language_hint or ""),
+                summary_json=json.dumps(summary.model_dump(), ensure_ascii=False),
+                reply_to_message_id=str(reply_to_id),
+                reply_to_text=reply_to_text,
+            ).content
+
+            reply: ReplySuggestion = await openai_reply.request_json(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                schema_model=ReplySuggestion,
+            )
 
             await create_suggestion(
                 conn,

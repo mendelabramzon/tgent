@@ -53,7 +53,20 @@ async def lifespan(app: FastAPI):
         max_retries=settings.openai_max_retries,
     )
 
-    scheduler = SuggestionScheduler(conn=conn, tg=tg, openai=openai_client, prompts=prompt_store)
+    openai_summary_client = OpenAIClient(
+        api_key=(settings.openai_api_key.get_secret_value() if settings.openai_api_key else None),
+        model=settings.openai_summary_model,
+        timeout_seconds=settings.openai_timeout_seconds,
+        max_retries=settings.openai_max_retries,
+    )
+
+    scheduler = SuggestionScheduler(
+        conn=conn,
+        tg=tg,
+        openai_summary=openai_summary_client,
+        openai_reply=openai_client,
+        prompts=prompt_store,
+    )
     await scheduler.start()
 
     app.state.settings = settings
@@ -61,6 +74,7 @@ async def lifespan(app: FastAPI):
     app.state.prompt_store = prompt_store
     app.state.tg = tg
     app.state.openai = openai_client
+    app.state.openai_summary = openai_summary_client
     app.state.scheduler = scheduler
 
     yield

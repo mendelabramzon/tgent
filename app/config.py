@@ -30,7 +30,10 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: SecretStr | None = None
+    # Reply/crafting model (used to generate the final suggested reply)
     openai_model: str = "gpt-4o-mini"
+    # Summary model (used to summarize recent messages before crafting)
+    openai_summary_model: str = "gpt-4o-mini"
     openai_timeout_seconds: float = 30.0
     openai_max_retries: int = 2
 

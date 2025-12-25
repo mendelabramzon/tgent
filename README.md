@@ -48,7 +48,8 @@ Required:
 Optional:
 
 - `TELEGRAM_PHONE` (used by the login helper script)
-- `OPENAI_MODEL` (default: `gpt-4o-mini`)
+- `OPENAI_MODEL` (reply/crafting model, default: `gpt-4o-mini`)
+- `OPENAI_SUMMARY_MODEL` (summary model, default: `gpt-4o-mini`)
 - `DASHBOARD_USERNAME` + `DASHBOARD_PASSWORD` (protect the web UI with a password)
 
 ### 3) Login to Telegram (one-time)
@@ -97,7 +98,9 @@ Run Uvicorn bound to localhost on the server and access it from your laptop via 
   - every **N minutes** it fetches last **K messages** for each selected chat
   - skips chats that already have enough **pending** suggestions (configurable)
   - skips if messages didn’t change since last successful run
-  - asks OpenAI for JSON output: `suggested_text` + `ru_translation`
+  - asks OpenAI in 2 steps:
+    - **summary model** (`OPENAI_SUMMARY_MODEL`) summarizes the last K messages
+    - **reply model** (`OPENAI_MODEL`) crafts the suggested reply + RU translation from that summary
   - stores a `suggestions` row with status `pending`
 - In **/** you can Send / Decline:
   - **Send** posts the suggested message back into the correct Telegram chat
@@ -108,13 +111,14 @@ Run Uvicorn bound to localhost on the server and access it from your laptop via 
 Prompt files live in:
 
 - `./prompts/system.json`
+- `./prompts/summarize_context.json`
 - `./prompts/suggest_reply.json`
 
 They are loaded by `app/prompts.py` (`PromptStore`) and can be reloaded from **/settings** with “Reload prompts”.
 
 ### Reply target (Send as reply)
 
-The default prompt (`prompts/suggest_reply.json`) asks the model to also return a `reply_to_message_id` (chosen from the recent messages list). The “Send as reply” button uses this id so the reply attaches to the **most relevant incoming message** (not always the last one). If it’s missing/invalid, the app falls back to a simple heuristic.
+The summary step chooses `reply_to_message_id` (best-fit incoming message id from the last K messages). The “Send as reply” button uses this id so the reply attaches to the **most relevant incoming message** (not always the last one). If it’s missing/invalid, the app falls back to a simple heuristic.
 
 ## Notes / safety
 

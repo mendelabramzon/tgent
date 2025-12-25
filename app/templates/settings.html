@@ -13,6 +13,13 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="label">OpenAI models</div>
+    <div class="mono">Summary: {{ openai_summary_model }}</div>
+    <div class="mono">Reply: {{ openai_reply_model }}</div>
+    <div class="muted">Set <code>OPENAI_SUMMARY_MODEL</code> and <code>OPENAI_MODEL</code> in <code>.env</code>.</div>
+  </div>
+
   <form method="post" action="/settings/save" class="form">
     <div class="form-row">
       <label class="label" for="k_messages">K (messages to fetch per chat)</label>
