@@ -5,11 +5,13 @@ import json
 import logging
 from typing import Any
 
-from openai import APIError, APITimeoutError, AsyncOpenAI, RateLimitError
+from openai import APIError, APITimeoutError, AsyncOpenAI, BadRequestError, RateLimitError
 
 from app.models import ReplySuggestion
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_MAX_OUTPUT_TOKENS = 600
 
 
 class OpenAIClient:
@@ -54,16 +56,46 @@ class OpenAIClient:
 
     async def _suggest_once(self, *, system_prompt: str, user_prompt: str) -> ReplySuggestion:
         assert self._client is not None
-        resp = await self._client.chat.completions.create(
-            model=self.model,
-            messages=[
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            response_format={"type": "json_object"},
-            temperature=0.7,
-            max_tokens=600,
-        )
+            "response_format": {"type": "json_object"},
+            "temperature": 0.7,
+        }
+
+        # Token parameter compatibility:
+        # Some models (e.g. GPT-5) require `max_completion_tokens` instead of `max_tokens`.
+        # We'll auto-detect once and then stick with it.
+        token_param: str | None = getattr(self, "_token_param", None)
+        if token_param is None:
+            token_param = "max_completion_tokens" if self.model.startswith("gpt-5") else "max_tokens"
+            setattr(self, "_token_param", token_param)
+
+        kwargs[token_param] = _DEFAULT_MAX_OUTPUT_TOKENS
+
+        try:
+            resp = await self._client.chat.completions.create(**kwargs)
+        except BadRequestError as e:
+            msg = str(e)
+            # Automatic fallback if the chosen token parameter is not supported.
+            if "max_tokens" in msg and "max_completion_tokens" in msg:
+                if "max_tokens' is not supported" in msg or "Use 'max_completion_tokens' instead" in msg:
+                    setattr(self, "_token_param", "max_completion_tokens")
+                    kwargs.pop("max_tokens", None)
+                    kwargs["max_completion_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
+                    resp = await self._client.chat.completions.create(**kwargs)
+                elif "max_completion_tokens' is not supported" in msg or "Use 'max_tokens' instead" in msg:
+                    setattr(self, "_token_param", "max_tokens")
+                    kwargs.pop("max_completion_tokens", None)
+                    kwargs["max_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
+                    resp = await self._client.chat.completions.create(**kwargs)
+                else:
+                    raise
+            else:
+                raise
 
         content = (resp.choices[0].message.content or "").strip()
         if not content:
