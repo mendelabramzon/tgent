@@ -12,6 +12,9 @@ from app.models import ReplySuggestion
 logger = logging.getLogger(__name__)
 
 _DEFAULT_MAX_OUTPUT_TOKENS = 600
+# GPT-5 models can spend a meaningful portion of the completion budget on internal reasoning.
+# If the budget is too low, you may receive a 200 OK with empty visible content.
+_GPT5_MAX_OUTPUT_TOKENS = 2000
 _DEFAULT_TEMPERATURE = 0.7
 
 
@@ -78,7 +81,8 @@ class OpenAIClient:
             token_param = "max_completion_tokens" if self.model.startswith("gpt-5") else "max_tokens"
             setattr(self, "_token_param", token_param)
 
-        kwargs[token_param] = _DEFAULT_MAX_OUTPUT_TOKENS
+        max_out = _GPT5_MAX_OUTPUT_TOKENS if self.model.startswith("gpt-5") else _DEFAULT_MAX_OUTPUT_TOKENS
+        kwargs[token_param] = max_out
 
         try:
             resp = await self._client.chat.completions.create(**kwargs)
